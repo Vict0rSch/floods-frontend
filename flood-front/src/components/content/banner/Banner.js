@@ -8,7 +8,7 @@ class Banner extends Component {
         return <Row
             style={ {
                 marginTop: 40,
-                opacity: 0.75,
+                // opacity: 0.75,
                 minHeight: "300px",
                 backgroundColor: "purple",
             } }
