@@ -4,31 +4,44 @@ import { Input } from 'antd';
 import Script from 'react-load-script';
 import uuid4 from 'uuid/v4';
 
+function validateResponse(response) {
+    if (!response.ok) {
+        throw Error(response.statusText);
+    }
+    return response;
+}
+
 class Right extends Component {
 
     state = {
-        data: [],
-        value: undefined,
+        value: "72 rue Jouffroy d'Abbans paris",
         loading: false,
         sessiontoken: uuid4(),
-        address: null
+        address: null,
+        src: "",
+        noImage: false
+    }
+
+    resetState = () => {
+        this.setState({
+            loading: false,
+            value: null,
+            src: null,
+            address: null,
+            noImage: null,
+        })
     }
 
     handleChange = (ev) => {
         const value = ev.target.value;
-        let ad = this.state.address;
         if (!value) {
-            ad = null;
+            this.resetState();
+        } else {
+            this.setState({
+                value
+            })
         }
-        this.setState({
-            value,
-            address: ad
-        })
     }
-
-    // handleChange = (value) => {
-    //     this.setState({ value });
-    // }
 
     handleScriptLoad = () => {
 
@@ -41,20 +54,44 @@ class Right extends Component {
             document.getElementById("autocomplete"),
             options);
         // Fire Event when a suggested name is selected
-        this.autocomplete.addListener("place_changed",
-            this.handlePlaceSelect);
+        this.autocomplete.addListener(
+            "place_changed",
+            this.handlePlaceSelect
+        );
+        console.log(this.inputElement);
+        // this.inputElement.dispatchEvent(new Event('change', { bubbles: true }))
     }
 
     handlePlaceSelect = () => {
 
-        // Extract City From Address Object
         let addressObject = this.autocomplete.getPlace();
-        let address = addressObject.address_components;
-
+        let address;
+        if (addressObject) {
+            address = addressObject.address_components;
+        }
         // Check if address is valid
         if (address) {
+            this.setState({
+                loading: true
+            })
             // Set State
-            console.log({ addressObject });
+            fetch(`http://localhost:5000/address/v1/${addressObject.formatted_address}`)
+                .then(validateResponse)
+                .then(response => response.blob())
+                .then(blob => {
+                    this.setState({
+                        src: URL.createObjectURL(blob),
+                        noImage: false,
+                        loading: false,
+                    })
+                })
+                .catch(error => {
+                    console.log(error);
+                    this.setState({
+                        noImage: true,
+                        loading: false,
+                    })
+                })
             this.setState(
                 {
                     value: addressObject.formatted_address,
@@ -65,8 +102,6 @@ class Right extends Component {
     }
 
     render() {
-
-        console.log(`https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_PLACES_API_KEY || ""}&libraries=places&sessiontoken=${this.state.sessiontoken}`);
 
         return <Col
             xs={ 24 }
@@ -87,6 +122,7 @@ class Right extends Component {
                 type="flex"
             >
                 <Input
+                    ref={ input => this.inputElement = input }
                     style={ { width: '90%' } }
                     size="large"
                     id="autocomplete"
@@ -104,14 +140,32 @@ class Right extends Component {
             >
                 {
                     this.state.address ?
-                        <a
-                            href={ this.state.address.url }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={ { fontSize: '1rem' } }
-                        >
-                            { this.state.address.formatted_address }
-                        </a>
+                        this.state.noImage ?
+                            `No Street View image available for ${this.state.value}`
+                            :
+                            this.state.loading ?
+                                "Loading..."
+                                :
+                                <div>
+                                    {/* <a
+                                    href={ this.state.address.url }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={ { fontSize: '1rem' } }
+                                >
+                                    { this.state.address.formatted_address }
+                                </a>
+                                <br /> */}
+                                    <img
+                                        alt={ `Street View of ${this.state.value}` }
+                                        src={ this.state.src }
+                                        style={ {
+                                            height: "100%",
+                                            width: "100%"
+                                        } }
+                                    >
+                                    </img>
+                                </div>
                         :
                         ""
                 }
