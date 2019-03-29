@@ -6,7 +6,7 @@ const { Title } = Typography;
 class Top extends Component {
     render() {
         return (
-            <Row gutter={ 32 } type="flex" justify="space-between" align="middle"
+            <Row type="flex" justify="space-between" align="middle"
                 style={ {
                     boxShadow: "10px 1px 8px rgba(0, 0, 0, .5)",
                     minHeight: 80,
